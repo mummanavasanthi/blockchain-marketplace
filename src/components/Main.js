@@ -5,7 +5,9 @@ class Main extends Component {
     return (
       <div className="container">
 
-        <h2 className="text-center mt-4">🛒 Add Product</h2>
+        <h2 className="text-center mt-4">
+          <span role="img" aria-label="cart">🛒</span> Add Product
+        </h2>
 
         <form
           className="d-flex justify-content-center gap-2 mt-3"
@@ -13,8 +15,10 @@ class Main extends Component {
             event.preventDefault()
             const name = this.productName.value
             const price = window.web3.utils.toWei(
-              this.productPrice.value.toString(), 'Ether'
+              this.productPrice.value.toString(),
+              'Ether'
             )
+
             this.props.createProduct(name, price)
           }}
         >
@@ -35,12 +39,16 @@ class Main extends Component {
             required
           />
 
-          <button className="btn btn-primary">Add</button>
+          <button className="btn btn-primary">
+            Add
+          </button>
         </form>
 
         <hr />
 
-        <h2 className="text-center mt-4">🛍️ Products</h2>
+        <h2 className="text-center mt-4">
+          <span role="img" aria-label="shopping">🛍️</span> Products
+        </h2>
 
         <div className="row mt-4">
           {this.props.products.map((product, key) => {
@@ -51,7 +59,8 @@ class Main extends Component {
                   <h5>{product.name}</h5>
 
                   <p>
-                    💰 {window.web3.utils.fromWei(
+                    <span role="img" aria-label="money">💰</span>{' '}
+                    {window.web3.utils.fromWei(
                       product.price.toString(),
                       'Ether'
                     )} ETH
@@ -66,7 +75,10 @@ class Main extends Component {
                     <button
                       className="btn btn-success"
                       onClick={() =>
-                        this.props.purchaseProduct(product.id)
+                        this.props.purchaseProduct(
+                          product.id,
+                          product.price   // 🔥 FIXED
+                        )
                       }
                     >
                       Buy

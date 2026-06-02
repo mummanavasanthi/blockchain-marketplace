@@ -4,6 +4,7 @@ import './App.css'
 import Marketplace from '../abis/Marketplace.json'
 import Navbar from './Navbar'
 import Main from './Main'
+import axios from 'axios'
 
 class App extends Component {
 
@@ -24,61 +25,74 @@ class App extends Component {
   }
 
   async loadBlockchainData() {
-    console.log("START")
+    try {
+      const web3 = window.web3
 
-    const web3 = window.web3
+      const accounts = await web3.eth.getAccounts()
+      this.setState({ account: accounts[0] })
 
-    // Load account
-    const accounts = await web3.eth.getAccounts()
-    this.setState({ account: accounts[0] })
-    console.log("ACCOUNTS:", accounts)
+      const networkId = await web3.eth.net.getId()
 
-    // Network
-    const networkId = await web3.eth.net.getId()
-    console.log("NETWORK ID:", networkId)
+      console.log("Network ID:", networkId)
 
-    const networkData = Marketplace.networks[networkId]
-    console.log("NETWORK DATA:", networkData)
+      const networkData = Marketplace.networks[networkId]
 
-    if (networkData) {
+      console.log("Network Data:", networkData)
 
-      const marketplace = new web3.eth.Contract(
-        Marketplace.abi,
-        networkData.address
-      )
-      console.log("CONTRACT OK")
+      if (networkData) {
+        const marketplace = new web3.eth.Contract(
+          Marketplace.abi,
+          networkData.address
+        )
 
-      this.setState({ marketplace })   // 🔥 IMPORTANT
+        this.setState({ marketplace })
 
-      let productCount = await marketplace.methods.productCount().call()
-      productCount = parseInt(productCount)
+        let productCount = await marketplace.methods.productCount().call()
+        productCount = parseInt(productCount)
 
-      console.log("PRODUCT COUNT:", productCount)
+        let products = []
 
-      // 🔥 LOAD PRODUCTS (YOU WERE MISSING THIS)
-      let products = []
+        for (let i = 1; i <= productCount; i++) {
+          const product = await marketplace.methods.products(i).call()
+          products.push(product)
+        }
 
-      for (let i = 1; i <= productCount; i++) {
-        const product = await marketplace.methods.products(i).call()
-        products.push(product)
+        this.setState({
+          productCount,
+          products,
+          loading: false
+        })
+
+      } else {
+        window.alert("Contract not deployed!")
+        this.setState({ loading: false })
       }
 
-      // 🔥 FINAL STATE UPDATE
-      this.setState({
-        productCount,
-        products,
-        loading: false
-      })
+    } catch (error) {
+      console.error("ERROR:", error)
+      this.setState({ loading: false })
+    }
+  }
 
-      console.log("DONE")
+  async testBackend() {
+    try {
+      const res = await axios.get("http://localhost:5000/products")
 
-    } else {
-      window.alert("Contract not deployed!")
+      console.log(res.data)
+
+      alert("Backend Connected Successfully!")
+
+    } catch (error) {
+
+      console.error(error)
+
+      alert("Backend Connection Failed!")
     }
   }
 
   constructor(props) {
     super(props)
+
     this.state = {
       account: '',
       productCount: 0,
@@ -89,30 +103,43 @@ class App extends Component {
 
     this.createProduct = this.createProduct.bind(this)
     this.purchaseProduct = this.purchaseProduct.bind(this)
+    this.testBackend = this.testBackend.bind(this)
   }
 
   createProduct(name, price) {
-    this.setState({ loading: true })
 
-    this.state.marketplace.methods.createProduct(name, price)
-      .send({ from: this.state.account })
-      .once('receipt', async () => {
-        await this.loadBlockchainData()
-      })
+  console.log("Marketplace:", this.state.marketplace)
+  console.log("Account:", this.state.account)
+
+  if (!this.state.marketplace) {
+    alert("Marketplace not loaded yet!")
+    return
   }
 
-  async purchaseProduct(id) {
   this.setState({ loading: true })
 
-  const product = await this.state.marketplace.methods.products(id).call()
+  this.state.marketplace.methods
+    .createProduct(name, price)
+    .send({ from: this.state.account })
+    .on('receipt', async () => {
+      await this.loadBlockchainData()
+    })
+  }
 
-  await this.state.marketplace.methods.purchaseProduct(id).send({
-    from: this.state.account,
-    value: product.price   // ✅ exact wei value
-  })
+  async purchaseProduct(id, price) {
+    this.setState({ loading: true })
 
-  await this.loadBlockchainData()
-}
+    console.log("PRICE:", price)
+
+    const value = window.web3.utils.toBN(price)
+
+    await this.state.marketplace.methods.purchaseProduct(id).send({
+      from: this.state.account,
+      value: value
+    })
+
+    await this.loadBlockchainData()
+  }
 
   render() {
     return (
@@ -121,7 +148,14 @@ class App extends Component {
 
         <div className="container-fluid mt-5">
           <div className="row">
-            <main className="col-lg-12 d-flex">
+            <main className="col-lg-12 d-flex flex-column">
+
+              <button
+                className="btn btn-primary mb-3"
+                onClick={this.testBackend}
+              >
+                Test Backend
+              </button>
 
               {this.state.loading
                 ? <h2>Loading...</h2>
