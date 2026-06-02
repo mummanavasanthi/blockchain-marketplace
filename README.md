@@ -145,6 +145,3 @@ http://localhost:3000
 ## Output
 
 <img width="1052" height="743" alt="Screenshot 2026-06-02 153748" src="https://github.com/user-attachments/assets/4e9870bf-f45f-4cbb-a070-26c8dabdfc2c" />
-
-
-Blockchain Marketplace developed as part of a Full-Stack Blockchain Integration project.
